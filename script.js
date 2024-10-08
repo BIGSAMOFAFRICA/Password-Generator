@@ -1,96 +1,125 @@
-const year = new Date().getFullYear();
-document.getElementById('year').textContent = year;
-const passwordField = document.getElementById('password');
-const copyBtn = document.getElementById('copy-btn');
-const saveBtn = document.getElementById('save-btn');
+const passwordInput = document.getElementById('password');
 const generateBtn = document.getElementById('generate-btn');
+const saveBtn = document.getElementById('save-btn');
+const showPasswordsBtn = document.getElementById('show-passwords-btn');
 const lengthInput = document.getElementById('length');
 const uppercaseCheckbox = document.getElementById('uppercase');
 const lowercaseCheckbox = document.getElementById('lowercase');
 const numbersCheckbox = document.getElementById('numbers');
 const symbolsCheckbox = document.getElementById('symbols');
-const strengthIndicator = document.getElementById('strength-indicator');
-const strengthText = document.getElementById('strength-text');
+const passwordList = document.getElementById('password-list');
+const modal = document.getElementById('modal');
+const modalMessage = document.getElementById('modal-message');
+const closeModalBtn = document.getElementById('close-modal');
+const passwordStrengthIndicator = document.getElementById('strength-indicator');
+const strengthMeter = document.getElementById('strength-meter');
 
-const characters = {
-    uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-    lowercase: 'abcdefghijklmnopqrstuvwxyz',
-    numbers: '0123456789',
-    symbols: '!@#$%^&*()_+{}[]<>?'
-};
-
-function generatePassword() {
-    let length = parseInt(lengthInput.value);
-    let charset = '';
-
-    if (uppercaseCheckbox.checked) charset += characters.uppercase;
-    if (lowercaseCheckbox.checked) charset += characters.lowercase;
-    if (numbersCheckbox.checked) charset += characters.numbers;
-    if (symbolsCheckbox.checked) charset += characters.symbols;
+function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
+    let charSet = '';
+    if (includeUppercase) charSet += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (includeLowercase) charSet += 'abcdefghijklmnopqrstuvwxyz';
+    if (includeNumbers) charSet += '0123456789';
+    if (includeSymbols) charSet += '!@#$%^&*()_+[]{}|;:,.<>?';
 
     let password = '';
     for (let i = 0; i < length; i++) {
-        password += charset[Math.floor(Math.random() * charset.length)];
+        const randomIndex = Math.floor(Math.random() * charSet.length);
+        password += charSet[randomIndex];
     }
-    
-    passwordField.value = password;
-    updateStrength(password);
+    return password;
 }
 
-function updateStrength(password) {
-    let strength = 0;
-    if (password.length >= 16) strength += 1;
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[a-z]/.test(password)) strength += 1;
-    if (/[0-9]/.test(password)) strength += 1;
-    if (/[!@#$%^&*()_+{}[\]<>?]/.test(password)) strength += 1;
+function evaluatePasswordStrength(password) {
+    let strength = 'Weak';
+    const lengthCriteria = password.length >= 12;
+    const upperCaseCriteria = /[A-Z]/.test(password);
+    const lowerCaseCriteria = /[a-z]/.test(password);
+    const numberCriteria = /\d/.test(password);
+    const symbolCriteria = /[!@#$%^&*()_+[\]{}|;:,.<>?]/.test(password);
 
-    strengthIndicator.style.width = `${strength * 20}%`;
+    const criteriaMet = [lengthCriteria, upperCaseCriteria, lowerCaseCriteria, numberCriteria, symbolCriteria].filter(Boolean).length;
 
-    if (strength === 5) {
-        strengthText.textContent = 'Very Strong';
-        strengthIndicator.classList.add('bg-green-500');
-        strengthIndicator.classList.remove('bg-yellow-500', 'bg-red-500');
-    } else if (strength >= 3) {
-        strengthText.textContent = 'Strong';
-        strengthIndicator.classList.add('bg-yellow-500');
-        strengthIndicator.classList.remove('bg-green-500', 'bg-red-500');
-    } else {
-        strengthText.textContent = 'Weak';
-        strengthIndicator.classList.add('bg-red-500');
-        strengthIndicator.classList.remove('bg-green-500', 'bg-yellow-500');
+    if (criteriaMet >= 4) {
+        strength = 'Strong';
+    } else if (criteriaMet >= 2) {
+        strength = 'Medium';
     }
+
+    return strength;
 }
 
-generateBtn.addEventListener('click', generatePassword);
+generateBtn.addEventListener('click', () => {
+    const length = parseInt(lengthInput.value);
+    const includeUppercase = uppercaseCheckbox.checked;
+    const includeLowercase = lowercaseCheckbox.checked;
+    const includeNumbers = numbersCheckbox.checked;
+    const includeSymbols = symbolsCheckbox.checked;
 
-copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(passwordField.value);
-    alert('Password copied to clipboard!');
+    const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
+    passwordInput.value = password;
+
+    const strength = evaluatePasswordStrength(password);
+    passwordStrengthIndicator.textContent = strength;
+
+    // Update strength meter
+    strengthMeter.className = `strength-meter ${strength.toLowerCase()}`;
+    strengthMeter.classList.remove('hidden');
+
+    // Show password strength indicator
+    const passwordStrengthDiv = document.getElementById('password-strength');
+    passwordStrengthDiv.classList.remove('hidden');
 });
 
 saveBtn.addEventListener('click', () => {
-    let password = passwordField.value;
+    const password = passwordInput.value;
     if (password) {
-        let savedPasswords = JSON.parse(localStorage.getItem('passwords')) || [];
+        const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
         savedPasswords.push(password);
-        localStorage.setItem('passwords', JSON.stringify(savedPasswords));
-        alert('Password saved successfully!');
-
-        console.log("Saved Passwords:", savedPasswords); 
+        localStorage.setItem('savedPasswords', JSON.stringify(savedPasswords));
+        showModal('Password saved!');
+        togglePasswordList();
     } else {
-        alert('Generate a password first!');
+        showModal('Please generate a password first.');
     }
 });
-if (document.getElementById('password-list')) {
-    const passwordList = document.getElementById('password-list');
-    const savedPasswords = JSON.parse(localStorage.getItem('passwords')) || [];
-    
-    console.log("Retrieved Saved Passwords:", savedPasswords); // 
-    savedPasswords.forEach(pwd => {
-        const listItem = document.createElement('li');
-        listItem.textContent = pwd;
-        listItem.className = 'text-gray-300';
-        passwordList.appendChild(listItem);
-    });
+
+showPasswordsBtn.addEventListener('click', togglePasswordList);
+
+function togglePasswordList() {
+    const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
+    passwordList.innerHTML = '';
+
+    if (savedPasswords.length === 0) {
+        passwordList.classList.add('hidden');
+    } else {
+        savedPasswords.forEach((password, index) => {
+            const listItem = document.createElement('li');
+            listItem.className = 'bg-gray-700 p-3 rounded-lg flex justify-between items-center';
+            listItem.innerHTML = `
+                <span class="text-white">${password}</span>
+                <button class="text-red-500 ml-4" onclick="deletePassword(${index})"><i class="fas fa-trash"></i></button>
+            `;
+            passwordList.appendChild(listItem);
+        });
+        passwordList.classList.remove('hidden');
+    }
 }
+
+function deletePassword(index) {
+    const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
+    savedPasswords.splice(index, 1);
+    localStorage.setItem('savedPasswords', JSON.stringify(savedPasswords));
+    togglePasswordList();
+}
+
+function showModal(message) {
+    modalMessage.textContent = message;
+    modal.classList.remove('hidden');
+}
+
+closeModalBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+});
+
+// Display the current year in the footer
+document.getElementById('year').textContent = new Date().getFullYear();

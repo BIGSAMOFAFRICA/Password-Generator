@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Password Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="bg-gray-900 flex flex-col justify-center items-center min-h-screen font-sans">
     <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
@@ -15,7 +17,13 @@
             <button id="copy-btn" class="absolute right-3 top-3 text-sm text-blue-500 hover:text-blue-400 focus:outline-none">Copy</button>
         </div>
 
-        
+        <div class="mb-4">
+            <div id="strength-meter" class="strength-meter hidden"></div>
+            <div id="password-strength" class="text-white text-lg hidden">
+               Password Strength: <span id="strength-indicator" class="font-bold"></span>
+            </div>
+        </div>
+
         <div class="mb-4">
             <label for="length" class="block text-sm text-white mb-2">Password Length</label>
             <input id="length" type="number" value="16" min="8" max="32" class="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -43,18 +51,20 @@
             </label>
         </div>
 
-        
-        <div class="mb-6">
-            <div id="strength-indicator" class="h-2 bg-gray-700 rounded-full"></div>
-            <p id="strength-text" class="text-white text-sm mt-2"></p>
-        </div>
-
-        
         <button id="generate-btn" class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-blue-500">Generate Password</button>
 
         <button id="save-btn" class="mt-4 w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-green-500">Save Your Password</button>
 
-        <a href="saved-passwords.html" class="mt-4 block text-center text-sm text-blue-400 hover:text-blue-300">View Saved Passwords</a>
+        <button id="show-passwords-btn" class="mt-4 w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-gray-500">View Saved Passwords</button>
+
+        <ul id="password-list" class="hidden mt-4 space-y-2"></ul>
+    </div>
+
+    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <p id="modal-message" class="text-gray-800"></p>
+            <button id="close-modal" class="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Close</button>
+        </div>
     </div>
 
     <footer class="text-center mt-8">

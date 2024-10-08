@@ -1,0 +1,19 @@
+.strength-meter {
+    height: 10px;
+    border-radius: 5px;
+    background: gray;
+    transition: width 0.5s, background 0.5s;
+    width: 0%; 
+}
+.strength-meter.weak {
+    background: red;
+    width: 33%; 
+}
+.strength-meter.medium {
+    background: orange;
+    width: 66%; 
+}
+.strength-meter.strong {
+    background: green;
+    width: 100%; 
+}
