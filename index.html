@@ -9,67 +9,117 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="bg-gray-900 flex flex-col justify-center items-center min-h-screen font-sans">
-    <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 class="text-3xl text-white font-bold mb-4 text-center">Password Generator</h1>
+    <h1 id="page-title" class="text-5xl text-white font-bold mb-8">Password Generator</h1>
+    <!-- Hidden content wrapper -->
+    <div id="main-content" class="hidden">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h1 class="text-3xl text-white font-bold mb-4 text-center">Password Generator</h1>
 
-        <div class="mb-6 relative">
-            <input id="password" type="text" readonly class="w-full p-3 text-xl bg-gray-700 text-white rounded-lg focus:outline-none" placeholder="Your generated password" />
-            <button id="copy-btn" class="absolute right-3 top-3 text-sm text-blue-500 hover:text-blue-400 focus:outline-none">Copy</button>
+            <div class="mb-6 relative">
+                <input id="password" type="text" readonly class="w-full p-3 text-xl bg-gray-700 text-white rounded-lg focus:outline-none" placeholder="Your generated password" />
+                <button id="copy-btn" class="absolute right-3 top-3 text-sm text-blue-500 hover:text-blue-400 focus:outline-none">Copy</button>
+            </div>
+
+            <div class="mb-4">
+                <div id="strength-meter" class="strength-meter hidden"></div>
+                <div id="password-strength" class="text-white text-lg hidden">
+                   Password Strength: <span id="strength-indicator" class="font-bold"></span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="length" class="block text-sm text-white mb-2">Password Length</label>
+                <input id="length" type="number" value="16" min="8" max="32" class="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div class="mb-4 flex items-center justify-between">
+                <label class="flex items-center">
+                    <input id="uppercase" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
+                    <span class="text-white">Include Uppercase</span>
+                </label>
+                <label class="flex items-center">
+                    <input id="lowercase" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
+                    <span class="text-white">Include Lowercase</span>
+                </label>
+            </div>
+
+            <div class="mb-4 flex items-center justify-between">
+                <label class="flex items-center">
+                    <input id="numbers" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
+                    <span class="text-white">Include Numbers</span>
+                </label>
+                <label class="flex items-center">
+                    <input id="symbols" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
+                    <span class="text-white">Include Symbols</span>
+                </label>
+            </div>
+
+            <button id="generate-btn" class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-blue-500">Generate Password</button>
+
+            <button id="save-btn" class="mt-4 w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-green-500">Save Your Password</button>
+
+            <button id="show-passwords-btn" class="mt-4 w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-gray-500">View Saved Passwords</button>
+
+            <ul id="password-list" class="hidden mt-4 space-y-2"></ul>
         </div>
 
-        <div class="mb-4">
-            <div id="strength-meter" class="strength-meter hidden"></div>
-            <div id="password-strength" class="text-white text-lg hidden">
-               Password Strength: <span id="strength-indicator" class="font-bold"></span>
+        <div id="modal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 hidden">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <p id="modal-message" class="text-gray-800"></p>
+                <button id="close-modal" class="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Close</button>
             </div>
         </div>
-
-        <div class="mb-4">
-            <label for="length" class="block text-sm text-white mb-2">Password Length</label>
-            <input id="length" type="number" value="16" min="8" max="32" class="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-
-        <div class="mb-4 flex items-center justify-between">
-            <label class="flex items-center">
-                <input id="uppercase" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
-                <span class="text-white">Include Uppercase</span>
-            </label>
-            <label class="flex items-center">
-                <input id="lowercase" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
-                <span class="text-white">Include Lowercase</span>
-            </label>
-        </div>
-
-        <div class="mb-4 flex items-center justify-between">
-            <label class="flex items-center">
-                <input id="numbers" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
-                <span class="text-white">Include Numbers</span>
-            </label>
-            <label class="flex items-center">
-                <input id="symbols" type="checkbox" checked class="mr-2 form-checkbox text-blue-500">
-                <span class="text-white">Include Symbols</span>
-            </label>
-        </div>
-
-        <button id="generate-btn" class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-blue-500">Generate Password</button>
-
-        <button id="save-btn" class="mt-4 w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-green-500">Save Your Password</button>
-
-        <button id="show-passwords-btn" class="mt-4 w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-gray-500">View Saved Passwords</button>
-
-        <ul id="password-list" class="hidden mt-4 space-y-2"></ul>
     </div>
 
-    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg">
-            <p id="modal-message" class="text-gray-800"></p>
-            <button id="close-modal" class="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Close</button>
-        </div>
+    <!-- Google Sign-In Button -->
+    <div id="login-section" class="text-center">
+        <button id="google-signin-btn" class="bg-red-500 text-white py-3 px-6 rounded-lg hover:bg-red-600 transition duration-200">Sign in with Google</button>
     </div>
 
     <footer class="text-center mt-8">
         <p class="text-gray-500 text-sm">&copy; <span id="year"></span> Olabisi Samuel. All Rights Reserved.</p>
     </footer>
+
+    <script type="module">
+        // Import Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZjWW_DNKfd71-gPXSwUmblfHuOe7puTk",
+            authDomain: "generator-88451.firebaseapp.com",
+            projectId: "generator-88451",
+            storageBucket: "generator-88451.appspot.com",
+            messagingSenderId: "976792202063",
+            appId: "1:976792202063:web:7b0054072306da46ca733a"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+
+        // Google Sign-In function
+        document.getElementById('google-signin-btn').addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Google sign-in error:", error);
+            }
+        });
+
+        // Show content after Google Sign-In
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                document.getElementById('main-content').classList.remove('hidden');
+                document.getElementById('login-section').classList.add('hidden');
+            }
+        });
+
+        // Display current year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
 
     <script src="script.js"></script>
 </body>
