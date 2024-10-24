@@ -62,9 +62,13 @@
 
             <button id="generate-btn" class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-blue-500">Generate Password</button>
 
+            <button id="check-leak-btn" class="mt-4 w-full bg-yellow-500 text-white py-3 rounded-lg hover:bg-yellow-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-yellow-500">Check Password Leak</button>
+
             <button id="save-btn" class="mt-4 w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-green-500">Save Your Password</button>
 
             <button id="show-passwords-btn" class="mt-4 w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-gray-500">View Saved Passwords</button>
+
+            <button id="logout-btn" class="mt-4 w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 hover:scale-105 transition duration-200 transform focus:outline-none focus:ring-2 focus:ring-red-500">Logout</button>
 
             <ul id="password-list" class="hidden mt-4 space-y-2"></ul>
         </div>
@@ -89,7 +93,7 @@
     <script type="module">
         // Import Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
         // Firebase configuration
         const firebaseConfig = {
@@ -115,7 +119,29 @@
             }
         });
 
-        // Show content after Google Sign-In
+        // Logout function
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                location.reload(); // Refresh the page to show login button again
+            } catch (error) {
+                console.error("Logout error:", error);
+            }
+        });
+
+        // Check if the password has been leaked
+        async function checkPasswordLeak(password) {
+            const hashedPassword = sha1(password); // Hash the password using SHA-1
+            const prefix = hashedPassword.slice(0, 5);
+            const suffix = hashedPassword.slice(5);
+            const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+            const data = await response.text();
+
+            // Check if the suffix is in the response data
+            return data.includes(suffix.toUpperCase());
+        }
+
+        // Display content after Google Sign-In
         onAuthStateChanged(auth, user => {
             if (user) {
                 document.getElementById('main-content').classList.remove('hidden');
@@ -128,13 +154,99 @@
                 setTimeout(() => {
                     welcomeNotification.classList.add('hidden');
                 }, 5000);
+            } else {
+                document.getElementById('main-content').classList.add('hidden');
+                document.getElementById('login-section').classList.remove('hidden');
             }
         });
 
-        // Display current year in footer
-        document.getElementById('year').textContent = new Date().getFullYear();
-    </script>
+        // Generate password
+        document.getElementById('generate-btn').addEventListener('click', () => {
+            const length = document.getElementById('length').value;
+            const includeUppercase = document.getElementById('uppercase').checked;
+            const includeLowercase = document.getElementById('lowercase').checked;
+            const includeNumbers = document.getElementById('numbers').checked;
+            const includeSymbols = document.getElementById('symbols').checked;
 
-    <script src="script.js"></script>
+            const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
+            document.getElementById('password').value = password;
+            checkPasswordStrength(password);
+        });
+
+        // Check password leak
+        document.getElementById('check-leak-btn').addEventListener('click', async () => {
+            const password = document.getElementById('password').value;
+            const isLeaked = await checkPasswordLeak(password);
+
+            const modalMessage = document.getElementById('modal-message');
+            const modal = document.getElementById('modal');
+            if (isLeaked) {
+                modalMessage.textContent = "This password has been leaked in a data breach. Please choose a different one.";
+            } else {
+                modalMessage.textContent = "This password has not been leaked. You're good to go!";
+            }
+            modal.classList.remove('hidden');
+        });
+
+        // Close modal
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('modal').classList.add('hidden');
+        });
+
+        // Utility functions
+        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
+            const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const lower = "abcdefghijklmnopqrstuvwxyz";
+            const numbers = "0123456789";
+            const symbols = "!@#$%^&*()_+[]{}|;:,.<>?";
+
+            let characterPool = '';
+            if (includeUppercase) characterPool += upper;
+            if (includeLowercase) characterPool += lower;
+            if (includeNumbers) characterPool += numbers;
+            if (includeSymbols) characterPool += symbols;
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += characterPool.charAt(Math.floor(Math.random() * characterPool.length));
+            }
+            return password;
+        }
+
+        function checkPasswordStrength(password) {
+            const strengthMeter = document.getElementById('strength-meter');
+            const strengthIndicator = document.getElementById('strength-indicator');
+            const strength = calculateStrength(password);
+            strengthMeter.classList.remove('hidden');
+            strengthIndicator.textContent = strength.label;
+            strengthMeter.style.width = strength.percentage + '%';
+            strengthMeter.style.backgroundColor = strength.color;
+            document.getElementById('password-strength').classList.remove('hidden');
+        }
+
+        function calculateStrength(password) {
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[a-z]/.test(password)) score++;
+            if (/\d/.test(password)) score++;
+            if (/[!@#$%^&*()_+]/.test(password)) score++;
+            const strengthLevels = [
+                { label: 'Very Weak', color: 'red', percentage: 20 },
+                { label: 'Weak', color: 'orange', percentage: 40 },
+                { label: 'Moderate', color: 'yellow', percentage: 60 },
+                { label: 'Strong', color: 'lightgreen', percentage: 80 },
+                { label: 'Very Strong', color: 'green', percentage: 100 },
+            ];
+            return strengthLevels[score] || strengthLevels[0];
+        }
+
+        // SHA-1 hash function (can be replaced with a library)
+        function sha1(msg) {
+            const shaObj = new jsSHA("SHA-1", "TEXT");
+            shaObj.update(msg);
+            return shaObj.getHash("HEX");
+        }
+    </script>
 </body>
 </html>
