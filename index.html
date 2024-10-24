@@ -161,17 +161,83 @@
 
             const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
             document.getElementById('password').value = password;
-            checkPasswordStrength(password);
+
+            // Check password strength and update UI
+            updatePasswordStrength(password);
         });
+
+        // Password generation logic
+        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
+            const uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const lowercaseChars = "abcdefghijklmnopqrstuvwxyz";
+            const numberChars = "0123456789";
+            const symbolChars = "!@#$%^&*()_+[]{}|;:,.<>?";
+
+            let chars = '';
+            if (includeUppercase) chars += uppercaseChars;
+            if (includeLowercase) chars += lowercaseChars;
+            if (includeNumbers) chars += numberChars;
+            if (includeSymbols) chars += symbolChars;
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * chars.length);
+                password += chars[randomIndex];
+            }
+
+            return password;
+        }
+
+        // Update password strength
+        function updatePasswordStrength(password) {
+            const strengthIndicator = document.getElementById('strength-indicator');
+            const strengthMeter = document.getElementById('strength-meter');
+
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[\W_]/.test(password)) strength++;
+
+            strengthMeter.classList.remove('hidden');
+            switch (strength) {
+                case 0:
+                case 1:
+                    strengthMeter.style.width = '0%';
+                    strengthIndicator.textContent = 'Very Weak';
+                    strengthMeter.classList.add('bg-red-600');
+                    break;
+                case 2:
+                    strengthMeter.style.width = '50%';
+                    strengthIndicator.textContent = 'Medium';
+                    strengthMeter.classList.remove('bg-red-600', 'bg-green-600');
+                    strengthMeter.classList.add('bg-yellow-600');
+                    break;
+                case 3:
+                    strengthMeter.style.width = '75%';
+                    strengthIndicator.textContent = 'Strong';
+                    strengthMeter.classList.remove('bg-red-600', 'bg-yellow-600');
+                    strengthMeter.classList.add('bg-green-600');
+                    break;
+                case 4:
+                    strengthMeter.style.width = '100%';
+                    strengthIndicator.textContent = 'Very Strong';
+                    strengthMeter.classList.remove('bg-red-600', 'bg-yellow-600');
+                    strengthMeter.classList.add('bg-blue-600');
+                    break;
+            }
+        }
 
         // Save Password
         document.getElementById('save-btn').addEventListener('click', async () => {
-            const password = document.getElementById('password').value;
             const user = auth.currentUser;
-
             if (user) {
+                const password = document.getElementById('password').value;
+
                 try {
-                    await addDoc(collection(db, "userPasswords"), {
+                    // Save the password to Firestore
+                    await addDoc(collection(db, 'passwords'), {
                         uid: user.uid,
                         password: password,
                         timestamp: new Date()
@@ -179,93 +245,64 @@
                     showModal("Password saved successfully!");
                 } catch (error) {
                     console.error("Error saving password:", error);
+                    showModal("Error saving password.");
                 }
             } else {
-                showModal("You must be signed in to save passwords.");
+                showModal("Please sign in to save your password.");
             }
         });
 
-        // Load Saved Passwords
-        async function loadSavedPasswords(userId) {
+        // Load saved passwords
+        async function loadSavedPasswords(uid) {
+            const passwordsRef = collection(db, 'passwords');
+            const q = query(passwordsRef, where('uid', '==', uid));
+
+            try {
+                const querySnapshot = await getDocs(q);
+                const passwordList = document.getElementById('password-list');
+                passwordList.innerHTML = ''; // Clear previous entries
+
+                if (querySnapshot.empty) {
+                    passwordList.innerHTML = '<li class="text-gray-500">No saved passwords.</li>';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const li = document.createElement('li');
+                        li.textContent = doc.data().password;
+                        passwordList.appendChild(li);
+                    });
+                }
+                passwordList.classList.remove('hidden'); // Show password list
+            } catch (error) {
+                console.error("Error loading saved passwords:", error);
+            }
+        }
+
+        // Show saved passwords button
+        document.getElementById('show-passwords-btn').addEventListener('click', () => {
             const passwordList = document.getElementById('password-list');
-            passwordList.innerHTML = ""; // Clear existing list
-            const q = query(collection(db, "userPasswords"), where("uid", "==", userId));
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                const li = document.createElement("li");
-                li.textContent = doc.data().password;
-                passwordList.appendChild(li);
-            });
-            passwordList.classList.remove('hidden');
-        }
-
-        // Check Password Strength
-        function checkPasswordStrength(password) {
-            const strengthMeter = document.getElementById('strength-meter');
-            const strengthIndicator = document.getElementById('strength-indicator');
-            let strength = 0;
-
-            if (password.length >= 12) strength += 1;
-            if (/[A-Z]/.test(password)) strength += 1;
-            if (/[a-z]/.test(password)) strength += 1;
-            if (/[0-9]/.test(password)) strength += 1;
-            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-
-            const strengthPercent = (strength / 5) * 100;
-            strengthMeter.style.width = `${strengthPercent}%`;
-
-            if (strength < 2) {
-                strengthIndicator.textContent = "Weak";
-                strengthMeter.className = "strength-meter bg-red-500";
-            } else if (strength < 4) {
-                strengthIndicator.textContent = "Medium";
-                strengthMeter.className = "strength-meter bg-yellow-500";
-            } else {
-                strengthIndicator.textContent = "Strong";
-                strengthMeter.className = "strength-meter bg-green-500";
+            passwordList.classList.toggle('hidden'); // Toggle visibility
+            if (!passwordList.classList.contains('hidden')) {
+                const user = auth.currentUser;
+                if (user) {
+                    loadSavedPasswords(user.uid); // Load passwords if visible
+                }
             }
-            strengthMeter.classList.remove('hidden');
-            document.getElementById('password-strength').classList.remove('hidden');
-        }
-
-        // Copy Password to Clipboard
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const passwordField = document.getElementById('password');
-            passwordField.select();
-            document.execCommand('copy');
-            showModal("Password copied to clipboard!");
         });
 
-        // Password Generation Logic
-        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
-            let charset = "";
-            if (includeUppercase) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            if (includeLowercase) charset += "abcdefghijklmnopqrstuvwxyz";
-            if (includeNumbers) charset += "0123456789";
-            if (includeSymbols) charset += "!@#$%^&*()_+[]{}|;:',.<>?";
-
-            let password = "";
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * charset.length);
-                password += charset[randomIndex];
-            }
-            return password;
-        }
-
-        // Set the current year in the footer
+        // Display current year in the footer
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // Monitor authentication state
+        // Observe authentication state
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('user-name').textContent = user.displayName;
                 document.getElementById('welcome-notification').classList.remove('hidden');
+                document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
-                loadSavedPasswords(user.uid); // Load saved passwords when authenticated
+                loadSavedPasswords(user.uid); // Load saved passwords on state change
             } else {
                 document.getElementById('login-section').classList.remove('hidden');
                 document.getElementById('main-content').classList.add('hidden');
-                document.getElementById('password-list').classList.add('hidden'); // Hide password list on logout
             }
         });
     </script>
