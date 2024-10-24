@@ -163,32 +163,29 @@
         });
 
         // Function to generate password
-        function generatePassword(length, upper, lower, number, symbol) {
-            const upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            const lowerChars = "abcdefghijklmnopqrstuvwxyz";
-            const numberChars = "0123456789";
-            const symbolChars = "!@#$%^&*()_+[]{}|;:,.<>?";
-            let validChars = "";
-            if (upper) validChars += upperChars;
-            if (lower) validChars += lowerChars;
-            if (number) validChars += numberChars;
-            if (symbol) validChars += symbolChars;
+        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
+            let charset = "";
+            if (includeUppercase) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            if (includeLowercase) charset += "abcdefghijklmnopqrstuvwxyz";
+            if (includeNumbers) charset += "0123456789";
+            if (includeSymbols) charset += "!@#$%^&*()_+[]{}|;:',.<>?";
 
             let password = "";
             for (let i = 0; i < length; i++) {
-                password += validChars.charAt(Math.floor(Math.random() * validChars.length));
+                const randomIndex = Math.floor(Math.random() * charset.length);
+                password += charset[randomIndex];
             }
             return password;
         }
 
-        // Function to calculate password strength
+        // Calculate password strength
         function calculateStrength(password) {
             let strength = 0;
             if (password.length >= 8) strength++;
             if (/[A-Z]/.test(password)) strength++;
             if (/[a-z]/.test(password)) strength++;
             if (/[0-9]/.test(password)) strength++;
-            if (/[!@#$%^&*()_+[\]{}|;:'",.<>?]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
             return strength;
         }
 
@@ -196,69 +193,53 @@
         function updateStrengthMeter(strength) {
             const strengthMeter = document.getElementById('strength-meter');
             const strengthIndicator = document.getElementById('strength-indicator');
-            const passwordStrength = document.getElementById('password-strength');
-
+            strengthMeter.style.width = (strength * 20) + '%';
             strengthMeter.classList.remove('hidden');
-            passwordStrength.classList.remove('hidden');
-
-            switch (strength) {
-                case 0:
-                case 1:
-                    strengthMeter.style.width = "20%";
-                    strengthMeter.classList.add("bg-red-500");
-                    strengthIndicator.textContent = "Weak";
-                    break;
-                case 2:
-                    strengthMeter.style.width = "50%";
-                    strengthMeter.classList.add("bg-yellow-500");
-                    strengthIndicator.textContent = "Moderate";
-                    break;
-                case 3:
-                    strengthMeter.style.width = "70%";
-                    strengthMeter.classList.add("bg-blue-500");
-                    strengthIndicator.textContent = "Strong";
-                    break;
-                case 4:
-                    strengthMeter.style.width = "100%";
-                    strengthMeter.classList.add("bg-green-500");
-                    strengthIndicator.textContent = "Very Strong";
-                    break;
-                default:
-                    strengthMeter.style.width = "0%";
-                    strengthIndicator.textContent = "";
-            }
+            strengthIndicator.textContent = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'][strength] || '';
         }
 
-        // Save password
+        // Save password to local storage
         document.getElementById('save-btn').addEventListener('click', () => {
             const password = document.getElementById('password').value;
             if (password) {
-                const passwordList = document.getElementById('password-list');
-                const passwordItem = document.createElement('li');
-                passwordItem.className = "bg-gray-700 text-white p-3 rounded-lg";
-                passwordItem.textContent = password;
-                passwordList.appendChild(passwordItem);
-                document.getElementById('password').value = '';
+                let passwords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
+                passwords.push(password);
+                localStorage.setItem('savedPasswords', JSON.stringify(passwords));
                 showModal('Password saved successfully!');
             } else {
-                showModal('Please generate a password before saving.');
+                showModal('Please generate a password first.');
             }
         });
 
         // Show saved passwords
         document.getElementById('show-passwords-btn').addEventListener('click', () => {
+            const passwords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
             const passwordList = document.getElementById('password-list');
-            if (passwordList.classList.contains('hidden')) {
-                passwordList.classList.remove('hidden');
-                document.getElementById('show-passwords-btn').textContent = 'Hide Saved Passwords';
-            } else {
-                passwordList.classList.add('hidden');
-                document.getElementById('show-passwords-btn').textContent = 'View Saved Passwords';
-            }
+            passwordList.innerHTML = '';
+            passwords.forEach((pass, index) => {
+                passwordList.innerHTML += `<li class="text-white">${index + 1}: ${pass}</li>`;
+            });
+            passwordList.classList.toggle('hidden');
         });
 
-        // Display current year
+        // Set current year in footer
         document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Authentication state listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('user-name').textContent = user.displayName;
+                document.getElementById('welcome-notification').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('welcome-notification').classList.add('hidden');
+                }, 5000);
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+            } else {
+                document.getElementById('login-section').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
