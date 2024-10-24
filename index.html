@@ -27,7 +27,7 @@
             </div>
 
             <div class="mb-4">
-                <div id="strength-meter" class="strength-meter hidden"></div>
+                <div id="strength-meter" class="strength-meter hidden h-2 rounded" style="width: 0;"></div>
                 <div id="password-strength" class="text-white text-lg hidden">
                    Password Strength: <span id="strength-indicator" class="font-bold"></span>
                 </div>
@@ -160,9 +160,9 @@
             }
         });
 
-        // Generate password
+        // Password generator function
         document.getElementById('generate-btn').addEventListener('click', () => {
-            const length = document.getElementById('length').value;
+            const length = parseInt(document.getElementById('length').value);
             const includeUppercase = document.getElementById('uppercase').checked;
             const includeLowercase = document.getElementById('lowercase').checked;
             const includeNumbers = document.getElementById('numbers').checked;
@@ -170,22 +170,85 @@
 
             const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
             document.getElementById('password').value = password;
-            checkPasswordStrength(password);
+            updatePasswordStrength(password);
         });
 
-        // Check password leak
+        // Password strength calculation
+        function updatePasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+            const strengthMeter = document.getElementById('strength-meter');
+            const strengthIndicator = document.getElementById('strength-indicator');
+            strengthMeter.classList.remove('hidden');
+
+            switch (strength) {
+                case 0:
+                    strengthMeter.style.width = '0%';
+                    strengthMeter.className = 'strength-meter bg-red-500';
+                    strengthIndicator.textContent = 'Very Weak';
+                    break;
+                case 1:
+                    strengthMeter.style.width = '25%';
+                    strengthMeter.className = 'strength-meter bg-red-500';
+                    strengthIndicator.textContent = 'Weak';
+                    break;
+                case 2:
+                    strengthMeter.style.width = '50%';
+                    strengthMeter.className = 'strength-meter bg-yellow-500';
+                    strengthIndicator.textContent = 'Moderate';
+                    break;
+                case 3:
+                    strengthMeter.style.width = '75%';
+                    strengthMeter.className = 'strength-meter bg-green-500';
+                    strengthIndicator.textContent = 'Strong';
+                    break;
+                case 4:
+                    strengthMeter.style.width = '100%';
+                    strengthMeter.className = 'strength-meter bg-green-600';
+                    strengthIndicator.textContent = 'Very Strong';
+                    break;
+                default:
+                    break;
+            }
+            document.getElementById('password-strength').classList.remove('hidden');
+        }
+
+        // Generate password function
+        function generatePassword(length, upper, lower, number, symbol) {
+            let charSet = '';
+            if (upper) charSet += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (lower) charSet += 'abcdefghijklmnopqrstuvwxyz';
+            if (number) charSet += '0123456789';
+            if (symbol) charSet += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * charSet.length);
+                password += charSet[randomIndex];
+            }
+            return password;
+        }
+
+        // Copy password to clipboard
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const passwordField = document.getElementById('password');
+            passwordField.select();
+            document.execCommand('copy');
+            alert('Password copied to clipboard!');
+        });
+
+        // Check password leak button
         document.getElementById('check-leak-btn').addEventListener('click', async () => {
             const password = document.getElementById('password').value;
             const isLeaked = await checkPasswordLeak(password);
-
-            const modalMessage = document.getElementById('modal-message');
-            const modal = document.getElementById('modal');
-            if (isLeaked) {
-                modalMessage.textContent = "This password has been leaked in a data breach. Please choose a different one.";
-            } else {
-                modalMessage.textContent = "This password has not been leaked. You're good to go!";
-            }
-            modal.classList.remove('hidden');
+            const modalMessage = isLeaked ? 'This password has been leaked in data breaches!' : 'This password is safe!';
+            document.getElementById('modal-message').textContent = modalMessage;
+            document.getElementById('modal').classList.remove('hidden');
         });
 
         // Close modal
@@ -193,60 +256,8 @@
             document.getElementById('modal').classList.add('hidden');
         });
 
-        // Utility functions
-        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
-            const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            const lower = "abcdefghijklmnopqrstuvwxyz";
-            const numbers = "0123456789";
-            const symbols = "!@#$%^&*()_+[]{}|;:,.<>?";
-
-            let characterPool = '';
-            if (includeUppercase) characterPool += upper;
-            if (includeLowercase) characterPool += lower;
-            if (includeNumbers) characterPool += numbers;
-            if (includeSymbols) characterPool += symbols;
-
-            let password = '';
-            for (let i = 0; i < length; i++) {
-                password += characterPool.charAt(Math.floor(Math.random() * characterPool.length));
-            }
-            return password;
-        }
-
-        function checkPasswordStrength(password) {
-            const strengthMeter = document.getElementById('strength-meter');
-            const strengthIndicator = document.getElementById('strength-indicator');
-            const strength = calculateStrength(password);
-            strengthMeter.classList.remove('hidden');
-            strengthIndicator.textContent = strength.label;
-            strengthMeter.style.width = strength.percentage + '%';
-            strengthMeter.style.backgroundColor = strength.color;
-            document.getElementById('password-strength').classList.remove('hidden');
-        }
-
-        function calculateStrength(password) {
-            let score = 0;
-            if (password.length >= 8) score++;
-            if (/[A-Z]/.test(password)) score++;
-            if (/[a-z]/.test(password)) score++;
-            if (/\d/.test(password)) score++;
-            if (/[!@#$%^&*()_+]/.test(password)) score++;
-            const strengthLevels = [
-                { label: 'Very Weak', color: 'red', percentage: 20 },
-                { label: 'Weak', color: 'orange', percentage: 40 },
-                { label: 'Moderate', color: 'yellow', percentage: 60 },
-                { label: 'Strong', color: 'lightgreen', percentage: 80 },
-                { label: 'Very Strong', color: 'green', percentage: 100 },
-            ];
-            return strengthLevels[score] || strengthLevels[0];
-        }
-
-        // SHA-1 hash function (can be replaced with a library)
-        function sha1(msg) {
-            const shaObj = new jsSHA("SHA-1", "TEXT");
-            shaObj.update(msg);
-            return shaObj.getHash("HEX");
-        }
+        // Update year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
     </script>
 </body>
 </html>
