@@ -162,7 +162,7 @@
 
         // Password generator function
         document.getElementById('generate-btn').addEventListener('click', () => {
-            const length = parseInt(document.getElementById('length').value);
+            const length = document.getElementById('length').value;
             const includeUppercase = document.getElementById('uppercase').checked;
             const includeLowercase = document.getElementById('lowercase').checked;
             const includeNumbers = document.getElementById('numbers').checked;
@@ -170,94 +170,132 @@
 
             const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
             document.getElementById('password').value = password;
-            updatePasswordStrength(password);
+            checkPasswordStrength(password); // Check password strength
         });
 
-        // Password strength calculation
-        function updatePasswordStrength(password) {
+        // Check password strength
+        function checkPasswordStrength(password) {
+            const strengthMeter = document.getElementById('strength-meter');
+            const strengthIndicator = document.getElementById('strength-indicator');
+            const passwordStrength = document.getElementById('password-strength');
+
+            // Logic to determine password strength
             let strength = 0;
             if (password.length >= 8) strength++;
             if (/[A-Z]/.test(password)) strength++;
             if (/[a-z]/.test(password)) strength++;
             if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            if (/[\W_]/.test(password)) strength++;
 
-            const strengthMeter = document.getElementById('strength-meter');
-            const strengthIndicator = document.getElementById('strength-indicator');
+            // Set strength meter and indicator
             strengthMeter.classList.remove('hidden');
+            strengthMeter.style.width = `${strength * 20}%`;
 
-            switch (strength) {
-                case 0:
-                    strengthMeter.style.width = '0%';
-                    strengthMeter.className = 'strength-meter bg-red-500';
-                    strengthIndicator.textContent = 'Very Weak';
-                    break;
-                case 1:
-                    strengthMeter.style.width = '25%';
-                    strengthMeter.className = 'strength-meter bg-red-500';
-                    strengthIndicator.textContent = 'Weak';
-                    break;
-                case 2:
-                    strengthMeter.style.width = '50%';
-                    strengthMeter.className = 'strength-meter bg-yellow-500';
-                    strengthIndicator.textContent = 'Moderate';
-                    break;
-                case 3:
-                    strengthMeter.style.width = '75%';
-                    strengthMeter.className = 'strength-meter bg-green-500';
-                    strengthIndicator.textContent = 'Strong';
-                    break;
-                case 4:
-                    strengthMeter.style.width = '100%';
-                    strengthMeter.className = 'strength-meter bg-green-600';
-                    strengthIndicator.textContent = 'Very Strong';
-                    break;
-                default:
-                    break;
+            if (strength === 5) {
+                strengthIndicator.textContent = 'Very Strong';
+                strengthMeter.classList.add('bg-green-500');
+            } else if (strength === 4) {
+                strengthIndicator.textContent = 'Strong';
+                strengthMeter.classList.add('bg-blue-500');
+            } else if (strength === 3) {
+                strengthIndicator.textContent = 'Moderate';
+                strengthMeter.classList.add('bg-yellow-500');
+            } else {
+                strengthIndicator.textContent = 'Weak';
+                strengthMeter.classList.add('bg-red-500');
             }
-            document.getElementById('password-strength').classList.remove('hidden');
+
+            passwordStrength.classList.remove('hidden');
         }
 
-        // Generate password function
-        function generatePassword(length, upper, lower, number, symbol) {
-            let charSet = '';
-            if (upper) charSet += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            if (lower) charSet += 'abcdefghijklmnopqrstuvwxyz';
-            if (number) charSet += '0123456789';
-            if (symbol) charSet += '!@#$%^&*()_+-=[]{}|;:,.<>?';
-
-            let password = '';
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * charSet.length);
-                password += charSet[randomIndex];
-            }
-            return password;
-        }
-
-        // Copy password to clipboard
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const passwordField = document.getElementById('password');
-            passwordField.select();
-            document.execCommand('copy');
-            alert('Password copied to clipboard!');
-        });
-
-        // Check password leak button
+        // Check for password leak
         document.getElementById('check-leak-btn').addEventListener('click', async () => {
             const password = document.getElementById('password').value;
-            const isLeaked = await checkPasswordLeak(password);
-            const modalMessage = isLeaked ? 'This password has been leaked in data breaches!' : 'This password is safe!';
-            document.getElementById('modal-message').textContent = modalMessage;
-            document.getElementById('modal').classList.remove('hidden');
+            if (!password) {
+                showModal("Please generate a password first.");
+                return;
+            }
+
+            try {
+                const isLeaked = await checkPasswordLeak(password);
+                if (isLeaked) {
+                    showModal("This password has been leaked in data breaches.");
+                } else {
+                    showModal("This password has not been leaked.");
+                }
+            } catch (error) {
+                console.error("Error checking password leak:", error);
+                showModal("An error occurred while checking the password leak.");
+            }
         });
+
+        // Function to show modal
+        function showModal(message) {
+            const modal = document.getElementById('modal');
+            const modalMessage = document.getElementById('modal-message');
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+        }
 
         // Close modal
         document.getElementById('close-modal').addEventListener('click', () => {
-            document.getElementById('modal').classList.add('hidden');
+            const modal = document.getElementById('modal');
+            modal.classList.add('hidden');
         });
 
-        // Update year in footer
+        // SHA-1 Hashing function
+        function sha1(str) {
+            const sha1 = new jsSHA("SHA-1", "TEXT");
+            sha1.update(str);
+            return sha1.getHash("HEX");
+        }
+
+        // Password saving functionality (implementation needed)
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const password = document.getElementById('password').value;
+            if (!password) {
+                showModal("Please generate a password first.");
+                return;
+            }
+
+            // Save password logic here (e.g., using local storage or a database)
+            const passwordList = document.getElementById('password-list');
+            const listItem = document.createElement('li');
+            listItem.textContent = password;
+            passwordList.appendChild(listItem);
+            passwordList.classList.remove('hidden');
+            showModal("Password saved successfully.");
+        });
+
+        // Show saved passwords functionality (implementation needed)
+        document.getElementById('show-passwords-btn').addEventListener('click', () => {
+            const passwordList = document.getElementById('password-list');
+            passwordList.classList.toggle('hidden');
+        });
+
+        // Footer year update
         document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Password generation function
+        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
+            const lower = 'abcdefghijklmnopqrstuvwxyz';
+            const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const numbers = '0123456789';
+            const symbols = '!@#$%^&*()_+[]{}|;:,.<>?';
+
+            let charset = '';
+            if (includeLowercase) charset += lower;
+            if (includeUppercase) charset += upper;
+            if (includeNumbers) charset += numbers;
+            if (includeSymbols) charset += symbols;
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * charset.length);
+                password += charset[randomIndex];
+            }
+            return password;
+        }
     </script>
 </body>
 </html>
