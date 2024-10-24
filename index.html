@@ -10,6 +10,12 @@
 </head>
 <body class="bg-gray-900 flex flex-col justify-center items-center min-h-screen font-sans">
     <h1 id="page-title" class="text-5xl text-white font-bold mb-8">Password Generator</h1>
+    
+    <!-- Notification Element -->
+    <div id="welcome-notification" class="fixed top-5 right-5 bg-green-500 text-white p-4 rounded-lg hidden">
+        Welcome, <span id="user-name"></span>!
+    </div>
+
     <!-- Hidden content wrapper -->
     <div id="main-content" class="hidden">
         <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
@@ -114,6 +120,14 @@
             if (user) {
                 document.getElementById('main-content').classList.remove('hidden');
                 document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('user-name').textContent = user.displayName; // Get the user's name
+                const welcomeNotification = document.getElementById('welcome-notification');
+                welcomeNotification.classList.remove('hidden'); // Show the welcome notification
+
+                // Hide the notification after 5 seconds
+                setTimeout(() => {
+                    welcomeNotification.classList.add('hidden');
+                }, 5000);
             }
         });
 
