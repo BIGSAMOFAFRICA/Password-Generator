@@ -162,112 +162,97 @@
             updateStrengthMeter(strength);
         });
 
-        // Function to generate password
-        function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
-            const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
+        // Generate Password Function
+        function generatePassword(length, upper, lower, number, symbol) {
+            let password = '';
+            const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
             const numberChars = '0123456789';
             const symbolChars = '!@#$%^&*()_+[]{}|;:,.<>?';
 
-            let charset = '';
-            if (includeUppercase) charset += uppercaseChars;
-            if (includeLowercase) charset += lowercaseChars;
-            if (includeNumbers) charset += numberChars;
-            if (includeSymbols) charset += symbolChars;
+            const charTypes = [];
+            if (upper) charTypes.push(upperChars);
+            if (lower) charTypes.push(lowerChars);
+            if (number) charTypes.push(numberChars);
+            if (symbol) charTypes.push(symbolChars);
 
-            let password = '';
             for (let i = 0; i < length; i++) {
-                password += charset.charAt(Math.floor(Math.random() * charset.length));
+                const randomType = charTypes[Math.floor(Math.random() * charTypes.length)];
+                password += randomType.charAt(Math.floor(Math.random() * randomType.length));
             }
+
             return password;
         }
 
-        // Calculate password strength
+        // Calculate Password Strength
         function calculateStrength(password) {
             let strength = 0;
-            if (password.length >= 8) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[a-z]/.test(password)) strength++;
-            if (/\d/.test(password)) strength++;
-            if (/[!@#$%^&*()_+[\]{};':"\\|,.<>?]/.test(password)) strength++;
+            const lengthCriteria = password.length >= 8 ? 1 : 0;
+            const uppercaseCriteria = /[A-Z]/.test(password) ? 1 : 0;
+            const lowercaseCriteria = /[a-z]/.test(password) ? 1 : 0;
+            const numberCriteria = /[0-9]/.test(password) ? 1 : 0;
+            const symbolCriteria = /[!@#$%^&*()_+[\]{}|;:,.<>?]/.test(password) ? 1 : 0;
+
+            strength = lengthCriteria + uppercaseCriteria + lowercaseCriteria + numberCriteria + symbolCriteria;
             return strength;
         }
 
-        // Update strength meter and text
+        // Update Strength Meter
         function updateStrengthMeter(strength) {
             const strengthMeter = document.getElementById('strength-meter');
             const strengthIndicator = document.getElementById('strength-indicator');
+            const strengthValues = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
 
             strengthMeter.style.width = (strength * 20) + '%';
             strengthMeter.classList.remove('hidden');
-            strengthIndicator.classList.remove('hidden');
-
-            // Set color based on strength
-            switch (strength) {
-                case 0:
-                case 1:
-                    strengthMeter.style.backgroundColor = 'red';
-                    strengthIndicator.textContent = 'Weak';
-                    break;
-                case 2:
-                    strengthMeter.style.backgroundColor = 'orange';
-                    strengthIndicator.textContent = 'Fair';
-                    break;
-                case 3:
-                    strengthMeter.style.backgroundColor = 'yellow';
-                    strengthIndicator.textContent = 'Good';
-                    break;
-                case 4:
-                    strengthMeter.style.backgroundColor = 'green';
-                    strengthIndicator.textContent = 'Strong';
-                    break;
-                default:
-                    strengthMeter.style.backgroundColor = 'red';
-                    strengthIndicator.textContent = 'Weak';
-                    break;
-            }
+            strengthIndicator.textContent = strengthValues[strength] || 'Weak';
         }
 
-        // Copy password to clipboard
+        // Copy to Clipboard
         document.getElementById('copy-btn').addEventListener('click', () => {
-            const password = document.getElementById('password');
-            password.select();
-            document.execCommand('copy');
-            showModal('Password copied to clipboard!');
+            const password = document.getElementById('password').value;
+            navigator.clipboard.writeText(password).then(() => {
+                showModal('Password copied to clipboard!');
+            }).catch(() => {
+                showModal('Failed to copy password.');
+            });
         });
 
-        // Save passwords to local storage
+        // Save Password
         document.getElementById('save-btn').addEventListener('click', () => {
             const password = document.getElementById('password').value;
             if (password) {
-                let passwordList = JSON.parse(localStorage.getItem('passwords')) || [];
-                passwordList.push(password);
-                localStorage.setItem('passwords', JSON.stringify(passwordList));
+                // Save the password logic (you can store it in an array or Firebase)
+                const passwordList = document.getElementById('password-list');
+                const listItem = document.createElement('li');
+                listItem.textContent = password;
+                passwordList.appendChild(listItem);
+                passwordList.classList.remove('hidden');
                 showModal('Password saved successfully!');
-                updatePasswordList();
+            } else {
+                showModal('Generate a password before saving.');
             }
         });
 
-        // Update password list display
-        function updatePasswordList() {
-            const passwordList = JSON.parse(localStorage.getItem('passwords')) || [];
-            const passwordListElement = document.getElementById('password-list');
-            passwordListElement.innerHTML = '';
-            passwordList.forEach(password => {
-                const li = document.createElement('li');
-                li.textContent = password;
-                passwordListElement.appendChild(li);
-            });
-            passwordListElement.classList.remove('hidden');
-        }
-
-        // Show saved passwords
-        document.getElementById('show-passwords-btn').addEventListener('click', () => {
-            updatePasswordList();
-        });
-
-        // Set current year in the footer
+        // Display Current Year
         document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Monitor Authentication State
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userName = user.displayName || 'User';
+                document.getElementById('user-name').textContent = userName;
+                document.getElementById('welcome-notification').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('welcome-notification').classList.add('hidden');
+                }, 5000);
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+            } else {
+                document.getElementById('login-section').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
