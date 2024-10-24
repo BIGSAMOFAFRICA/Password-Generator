@@ -92,6 +92,7 @@
         // Import Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         // Firebase configuration
         const firebaseConfig = {
@@ -106,6 +107,7 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
         // Google Sign-In
@@ -120,6 +122,7 @@
                     }, 5000);
                     document.getElementById('login-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
+                    loadSavedPasswords(user.uid); // Load saved passwords on sign in
                 })
                 .catch((error) => {
                     console.error("Error signing in with Google:", error);
@@ -131,6 +134,7 @@
             signOut(auth).then(() => {
                 document.getElementById('login-section').classList.remove('hidden');
                 document.getElementById('main-content').classList.add('hidden');
+                document.getElementById('password-list').classList.add('hidden'); // Hide password list on logout
             }).catch((error) => {
                 console.error("Error signing out:", error);
             });
@@ -157,12 +161,82 @@
 
             const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
             document.getElementById('password').value = password;
-
-            const strength = calculateStrength(password);
-            updateStrengthMeter(strength);
+            checkPasswordStrength(password);
         });
 
-        // Function to generate password
+        // Save Password
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const password = document.getElementById('password').value;
+            const user = auth.currentUser;
+
+            if (user) {
+                try {
+                    await addDoc(collection(db, "userPasswords"), {
+                        uid: user.uid,
+                        password: password,
+                        timestamp: new Date()
+                    });
+                    showModal("Password saved successfully!");
+                } catch (error) {
+                    console.error("Error saving password:", error);
+                }
+            } else {
+                showModal("You must be signed in to save passwords.");
+            }
+        });
+
+        // Load Saved Passwords
+        async function loadSavedPasswords(userId) {
+            const passwordList = document.getElementById('password-list');
+            passwordList.innerHTML = ""; // Clear existing list
+            const q = query(collection(db, "userPasswords"), where("uid", "==", userId));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                const li = document.createElement("li");
+                li.textContent = doc.data().password;
+                passwordList.appendChild(li);
+            });
+            passwordList.classList.remove('hidden');
+        }
+
+        // Check Password Strength
+        function checkPasswordStrength(password) {
+            const strengthMeter = document.getElementById('strength-meter');
+            const strengthIndicator = document.getElementById('strength-indicator');
+            let strength = 0;
+
+            if (password.length >= 12) strength += 1;
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[a-z]/.test(password)) strength += 1;
+            if (/[0-9]/.test(password)) strength += 1;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+            const strengthPercent = (strength / 5) * 100;
+            strengthMeter.style.width = `${strengthPercent}%`;
+
+            if (strength < 2) {
+                strengthIndicator.textContent = "Weak";
+                strengthMeter.className = "strength-meter bg-red-500";
+            } else if (strength < 4) {
+                strengthIndicator.textContent = "Medium";
+                strengthMeter.className = "strength-meter bg-yellow-500";
+            } else {
+                strengthIndicator.textContent = "Strong";
+                strengthMeter.className = "strength-meter bg-green-500";
+            }
+            strengthMeter.classList.remove('hidden');
+            document.getElementById('password-strength').classList.remove('hidden');
+        }
+
+        // Copy Password to Clipboard
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const passwordField = document.getElementById('password');
+            passwordField.select();
+            document.execCommand('copy');
+            showModal("Password copied to clipboard!");
+        });
+
+        // Password Generation Logic
         function generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols) {
             let charset = "";
             if (includeUppercase) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -178,66 +252,20 @@
             return password;
         }
 
-        // Calculate password strength
-        function calculateStrength(password) {
-            let strength = 0;
-            if (password.length >= 8) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[a-z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
-            return strength;
-        }
-
-        // Update strength meter
-        function updateStrengthMeter(strength) {
-            const strengthMeter = document.getElementById('strength-meter');
-            const strengthIndicator = document.getElementById('strength-indicator');
-            strengthMeter.style.width = (strength * 20) + '%';
-            strengthMeter.classList.remove('hidden');
-            strengthIndicator.textContent = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'][strength] || '';
-        }
-
-        // Save password to local storage
-        document.getElementById('save-btn').addEventListener('click', () => {
-            const password = document.getElementById('password').value;
-            if (password) {
-                let passwords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
-                passwords.push(password);
-                localStorage.setItem('savedPasswords', JSON.stringify(passwords));
-                showModal('Password saved successfully!');
-            } else {
-                showModal('Please generate a password first.');
-            }
-        });
-
-        // Show saved passwords
-        document.getElementById('show-passwords-btn').addEventListener('click', () => {
-            const passwords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
-            const passwordList = document.getElementById('password-list');
-            passwordList.innerHTML = '';
-            passwords.forEach((pass, index) => {
-                passwordList.innerHTML += `<li class="text-white">${index + 1}: ${pass}</li>`;
-            });
-            passwordList.classList.toggle('hidden');
-        });
-
-        // Set current year in footer
+        // Set the current year in the footer
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // Authentication state listener
+        // Monitor authentication state
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('user-name').textContent = user.displayName;
                 document.getElementById('welcome-notification').classList.remove('hidden');
-                setTimeout(() => {
-                    document.getElementById('welcome-notification').classList.add('hidden');
-                }, 5000);
-                document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
+                loadSavedPasswords(user.uid); // Load saved passwords when authenticated
             } else {
                 document.getElementById('login-section').classList.remove('hidden');
                 document.getElementById('main-content').classList.add('hidden');
+                document.getElementById('password-list').classList.add('hidden'); // Hide password list on logout
             }
         });
     </script>
