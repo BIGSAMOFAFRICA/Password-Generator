@@ -160,99 +160,101 @@
 
             const strength = calculateStrength(password);
             updateStrengthMeter(strength);
+            displayStrengthIndicator(strength);
         });
 
-        // Generate Password Function
+        // Function to generate password
         function generatePassword(length, upper, lower, number, symbol) {
+            let charset = '';
+            if (upper) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (lower) charset += 'abcdefghijklmnopqrstuvwxyz';
+            if (number) charset += '0123456789';
+            if (symbol) charset += '!@#$%^&*()_+[]{}|;:,.<>?';
+
             let password = '';
-            const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
-            const numberChars = '0123456789';
-            const symbolChars = '!@#$%^&*()_+[]{}|;:,.<>?';
-
-            const charTypes = [];
-            if (upper) charTypes.push(upperChars);
-            if (lower) charTypes.push(lowerChars);
-            if (number) charTypes.push(numberChars);
-            if (symbol) charTypes.push(symbolChars);
-
             for (let i = 0; i < length; i++) {
-                const randomType = charTypes[Math.floor(Math.random() * charTypes.length)];
-                password += randomType.charAt(Math.floor(Math.random() * randomType.length));
+                const randomIndex = Math.floor(Math.random() * charset.length);
+                password += charset[randomIndex];
             }
-
             return password;
         }
 
-        // Calculate Password Strength
+        // Function to calculate password strength
         function calculateStrength(password) {
             let strength = 0;
-            const lengthCriteria = password.length >= 8 ? 1 : 0;
-            const uppercaseCriteria = /[A-Z]/.test(password) ? 1 : 0;
-            const lowercaseCriteria = /[a-z]/.test(password) ? 1 : 0;
-            const numberCriteria = /[0-9]/.test(password) ? 1 : 0;
-            const symbolCriteria = /[!@#$%^&*()_+[\]{}|;:,.<>?]/.test(password) ? 1 : 0;
-
-            strength = lengthCriteria + uppercaseCriteria + lowercaseCriteria + numberCriteria + symbolCriteria;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[!@#$%^&*()_+[\]{}|;:,.<>?]/.test(password)) strength++;
             return strength;
         }
 
-        // Update Strength Meter
+        // Update strength meter
         function updateStrengthMeter(strength) {
             const strengthMeter = document.getElementById('strength-meter');
-            const strengthIndicator = document.getElementById('strength-indicator');
-            const strengthValues = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
-
-            strengthMeter.style.width = (strength * 20) + '%';
             strengthMeter.classList.remove('hidden');
-            strengthIndicator.textContent = strengthValues[strength] || 'Weak';
+            strengthMeter.style.width = `${strength * 20}%`;
+            strengthMeter.classList.remove('bg-red-600', 'bg-yellow-500', 'bg-green-500');
+
+            if (strength === 0) {
+                strengthMeter.style.width = '0%';
+            } else if (strength < 3) {
+                strengthMeter.classList.add('bg-red-600');
+            } else if (strength === 3) {
+                strengthMeter.classList.add('bg-yellow-500');
+            } else {
+                strengthMeter.classList.add('bg-green-500');
+            }
         }
 
-        // Copy to Clipboard
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const password = document.getElementById('password').value;
-            navigator.clipboard.writeText(password).then(() => {
-                showModal('Password copied to clipboard!');
-            }).catch(() => {
-                showModal('Failed to copy password.');
-            });
-        });
+        // Display strength indicator
+        function displayStrengthIndicator(strength) {
+            const strengthIndicator = document.getElementById('strength-indicator');
+            const strengthText = ['Very Weak', 'Weak', 'Moderate', 'Strong', 'Very Strong'];
+            strengthIndicator.textContent = strengthText[strength];
+            document.getElementById('password-strength').classList.remove('hidden');
+        }
 
         // Save Password
         document.getElementById('save-btn').addEventListener('click', () => {
             const password = document.getElementById('password').value;
             if (password) {
-                // Save the password logic (you can store it in an array or Firebase)
-                const passwordList = document.getElementById('password-list');
-                const listItem = document.createElement('li');
-                listItem.textContent = password;
-                passwordList.appendChild(listItem);
+                savePassword(password);
+                showModal(`Password saved: ${password}`);
+            } else {
+                showModal('Please generate a password first.');
+            }
+        });
+
+        // Save passwords to local storage
+        function savePassword(password) {
+            let passwords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
+            passwords.push(password);
+            localStorage.setItem('savedPasswords', JSON.stringify(passwords));
+        }
+
+        // View saved passwords
+        document.getElementById('show-passwords-btn').addEventListener('click', () => {
+            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
+            const passwordList = document.getElementById('password-list');
+            passwordList.innerHTML = '';
+
+            savedPasswords.forEach((password, index) => {
+                const li = document.createElement('li');
+                li.textContent = `Password ${index + 1}: ${password}`;
+                passwordList.appendChild(li);
+            });
+
+            if (savedPasswords.length > 0) {
                 passwordList.classList.remove('hidden');
-                showModal('Password saved successfully!');
             } else {
-                showModal('Generate a password before saving.');
+                showModal('No saved passwords found.');
             }
         });
 
-        // Display Current Year
+        // Set current year in footer
         document.getElementById('year').textContent = new Date().getFullYear();
-
-        // Monitor Authentication State
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const userName = user.displayName || 'User';
-                document.getElementById('user-name').textContent = userName;
-                document.getElementById('welcome-notification').classList.remove('hidden');
-                setTimeout(() => {
-                    document.getElementById('welcome-notification').classList.add('hidden');
-                }, 5000);
-                document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-            } else {
-                document.getElementById('login-section').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-            }
-        });
     </script>
 </body>
 </html>
