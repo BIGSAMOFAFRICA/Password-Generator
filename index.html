@@ -147,6 +147,14 @@
             document.getElementById('modal').classList.add('hidden');
         });
 
+        // Copy to clipboard
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const passwordInput = document.getElementById('password');
+            passwordInput.select();
+            document.execCommand('copy');
+            showModal('Password copied to clipboard!');
+        });
+
         // Generate Password
         document.getElementById('generate-btn').addEventListener('click', () => {
             const length = document.getElementById('length').value;
@@ -155,137 +163,92 @@
             const includeNumbers = document.getElementById('numbers').checked;
             const includeSymbols = document.getElementById('symbols').checked;
 
-            const password = generatePassword(length, includeUppercase, includeLowercase, includeNumbers, includeSymbols);
-            document.getElementById('password').value = password;
-            evaluatePasswordStrength(password);
-        });
+            // Validation
+            if (length < 8 || length > 32 || (!includeUppercase && !includeLowercase && !includeNumbers && !includeSymbols)) {
+                showModal('Please select at least one character type and ensure the length is between 8 and 32 characters.');
+                return;
+            }
 
-        // Generate a random password
-        function generatePassword(length, upper, lower, number, symbol) {
-            const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
-            const numberChars = '0123456789';
-            const symbolChars = '!@#$%^&*()_+[]{}|;:,.<>?';
-
-            let charPool = '';
-            if (upper) charPool += upperChars;
-            if (lower) charPool += lowerChars;
-            if (number) charPool += numberChars;
-            if (symbol) charPool += symbolChars;
+            let characters = '';
+            if (includeUppercase) characters += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (includeLowercase) characters += 'abcdefghijklmnopqrstuvwxyz';
+            if (includeNumbers) characters += '0123456789';
+            if (includeSymbols) characters += '!@#$%^&*()_+[]{}|;:,.<>?';
 
             let password = '';
             for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * charPool.length);
-                password += charPool[randomIndex];
+                password += characters.charAt(Math.floor(Math.random() * characters.length));
             }
-            return password;
-        }
 
-        // Evaluate Password Strength
-        function evaluatePasswordStrength(password) {
+            document.getElementById('password').value = password;
+            updatePasswordStrength(password);
+        });
+
+        // Update password strength
+        function updatePasswordStrength(password) {
+            let strength = 0;
             const strengthMeter = document.getElementById('strength-meter');
             const strengthIndicator = document.getElementById('strength-indicator');
-            let strength = 0;
-
             if (password.length >= 8) strength++;
             if (/[A-Z]/.test(password)) strength++;
             if (/[a-z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[!@#$%^&*()_+[\]{}|;:,.<>?]/.test(password)) strength++;
 
+            strengthMeter.classList.remove('hidden');
             switch (strength) {
-                case 0:
                 case 1:
-                    strengthMeter.style.width = '0%';
+                    strengthMeter.style.width = '20%';
+                    strengthMeter.className = 'strength-meter bg-red-500';
                     strengthIndicator.textContent = 'Weak';
-                    strengthMeter.classList.remove('hidden');
-                    strengthMeter.classList.add('bg-red-500');
                     break;
                 case 2:
                     strengthMeter.style.width = '50%';
-                    strengthIndicator.textContent = 'Medium';
-                    strengthMeter.classList.remove('hidden');
-                    strengthMeter.classList.remove('bg-red-500');
-                    strengthMeter.classList.add('bg-yellow-500');
+                    strengthMeter.className = 'strength-meter bg-yellow-500';
+                    strengthIndicator.textContent = 'Moderate';
                     break;
                 case 3:
+                    strengthMeter.style.width = '80%';
+                    strengthMeter.className = 'strength-meter bg-green-500';
+                    strengthIndicator.textContent = 'Strong';
+                    break;
                 case 4:
                     strengthMeter.style.width = '100%';
-                    strengthIndicator.textContent = 'Strong';
-                    strengthMeter.classList.remove('hidden');
-                    strengthMeter.classList.remove('bg-yellow-500');
-                    strengthMeter.classList.add('bg-green-500');
+                    strengthMeter.className = 'strength-meter bg-green-700';
+                    strengthIndicator.textContent = 'Very Strong';
                     break;
                 default:
-                    strengthMeter.classList.add('hidden');
-                    break;
+                    strengthMeter.style.width = '0%';
+                    strengthMeter.className = 'strength-meter hidden';
+                    strengthIndicator.textContent = '';
             }
             document.getElementById('password-strength').classList.remove('hidden');
         }
 
-        // Save Password
+        // Save password
         document.getElementById('save-btn').addEventListener('click', () => {
             const password = document.getElementById('password').value;
             if (password) {
-                const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
-                savedPasswords.push(password);
-                localStorage.setItem('savedPasswords', JSON.stringify(savedPasswords));
-                displaySavedPasswords();
+                const passwordList = document.getElementById('password-list');
+                const listItem = document.createElement('li');
+                listItem.className = 'bg-gray-700 p-2 rounded';
+                listItem.textContent = password;
+                passwordList.appendChild(listItem);
+                passwordList.classList.remove('hidden');
                 showModal('Password saved successfully!');
             } else {
-                showModal('Please generate a password first.');
+                showModal('Please generate a password first!');
             }
         });
 
-        // Display Saved Passwords
-        function displaySavedPasswords() {
-            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
-            const passwordList = document.getElementById('password-list');
-            passwordList.innerHTML = '';
-
-            savedPasswords.forEach((password, index) => {
-                const listItem = document.createElement('li');
-                listItem.className = 'flex justify-between items-center bg-gray-700 text-white p-3 rounded';
-                listItem.innerHTML = `
-                    <span>${password}</span>
-                    <button class="delete-btn text-red-500 hover:text-red-400" data-index="${index}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
-                passwordList.appendChild(listItem);
-            });
-            passwordList.classList.remove('hidden');
-
-            // Add event listeners to delete buttons
-            document.querySelectorAll('.delete-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const index = e.target.closest('button').dataset.index;
-                    deletePassword(index);
-                });
-            });
-        }
-
-        // Delete Password
-        function deletePassword(index) {
-            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords')) || [];
-            savedPasswords.splice(index, 1);
-            localStorage.setItem('savedPasswords', JSON.stringify(savedPasswords));
-            displaySavedPasswords();
-            showModal('Password deleted successfully!');
-        }
-
-        // Show saved passwords
+        // Show passwords
         document.getElementById('show-passwords-btn').addEventListener('click', () => {
-            displaySavedPasswords();
+            const passwordList = document.getElementById('password-list');
+            passwordList.classList.toggle('hidden');
         });
 
-        // Set current year for copyright
+        // Display current year in footer
         document.getElementById('year').textContent = new Date().getFullYear();
-
-        // Close the notification after 5 seconds
-        setTimeout(() => {
-            document.getElementById('welcome-notification').classList.add('hidden');
-        }, 5000);
     </script>
 </body>
 </html>
