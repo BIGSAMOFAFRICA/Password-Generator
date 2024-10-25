@@ -78,8 +78,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Google Sign-In Button -->
     <div id="login-section" class="text-center">
         <button id="google-signin-btn" class="bg-red-500 text-white py-3 px-6 rounded-lg hover:bg-red-600 transition duration-200">Sign in with Google</button>
     </div>
@@ -89,11 +87,8 @@
     </footer>
 
     <script type="module">
-        // Import Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBZjWW_DNKfd71-gPXSwUmblfHuOe7puTk",
             authDomain: "generator-88451.firebaseapp.com",
@@ -103,12 +98,9 @@
             appId: "1:976792202063:web:7b0054072306da46ca733a"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
-
-        // Google Sign-In
         document.getElementById('google-signin-btn').addEventListener('click', () => {
             signInWithPopup(auth, provider)
                 .then((result) => {
@@ -125,8 +117,6 @@
                     console.error("Error signing in with Google:", error);
                 });
         });
-
-        // Logout
         document.getElementById('logout-btn').addEventListener('click', () => {
             signOut(auth).then(() => {
                 document.getElementById('login-section').classList.remove('hidden');
@@ -135,27 +125,21 @@
                 console.error("Error signing out:", error);
             });
         });
-
-        // Function to show modal
         function showModal(message) {
             document.getElementById('modal-message').textContent = message;
             document.getElementById('modal').classList.remove('hidden');
         }
-
-        // Close modal
         document.getElementById('close-modal').addEventListener('click', () => {
             document.getElementById('modal').classList.add('hidden');
         });
 
-        // Copy to clipboard
+        
         document.getElementById('copy-btn').addEventListener('click', () => {
             const passwordInput = document.getElementById('password');
             passwordInput.select();
             document.execCommand('copy');
             showModal('Password copied to clipboard!');
         });
-
-        // Generate Password
         document.getElementById('generate-btn').addEventListener('click', () => {
             const length = document.getElementById('length').value;
             const includeUppercase = document.getElementById('uppercase').checked;
@@ -163,9 +147,8 @@
             const includeNumbers = document.getElementById('numbers').checked;
             const includeSymbols = document.getElementById('symbols').checked;
 
-            // Validation
             if (length < 8 || length > 32 || (!includeUppercase && !includeLowercase && !includeNumbers && !includeSymbols)) {
-                showModal('Please select at least one character type and ensure the length is between 8 and 32 characters.');
+                showModal('Alaye select at least one character type and ensure the length is between 8 and 32 characters.😁');
                 return;
             }
 
@@ -184,7 +167,6 @@
             updatePasswordStrength(password);
         });
 
-        // Update password strength
         function updatePasswordStrength(password) {
             let strength = 0;
             const strengthMeter = document.getElementById('strength-meter');
@@ -224,8 +206,6 @@
             }
             document.getElementById('password-strength').classList.remove('hidden');
         }
-
-        // Save password
         document.getElementById('save-btn').addEventListener('click', () => {
             const password = document.getElementById('password').value;
             if (password) {
@@ -240,14 +220,10 @@
                 showModal('Please generate a password first!');
             }
         });
-
-        // Show passwords
         document.getElementById('show-passwords-btn').addEventListener('click', () => {
             const passwordList = document.getElementById('password-list');
             passwordList.classList.toggle('hidden');
         });
-
-        // Display current year in footer
         document.getElementById('year').textContent = new Date().getFullYear();
     </script>
 </body>
